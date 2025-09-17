@@ -11,7 +11,7 @@ const server = http.createServer(app); // 使用 Express 应用实例创建一�
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // 指定允许连接的前端应用的源地址。
+        origin: "http://localhost:5173", // 指定允许连接的前端应用的源地址。
         methods: ["GET", "POST"] // 指定允许的 HTTP 请求方法。
     }
 }); // 创建一个 Socket.IO 服务器实例，并配置 CORS 选项。

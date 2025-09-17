@@ -5,13 +5,7 @@ import { useSocket } from '../../context/SocketContext';
 import useSocketListener from '../../hooks/useSocketListener';
 import Tile from './Tile';
 
-// --- 新增：定义公共区域的尺寸和位置 ---
-const PUBLIC_ZONE = {
-    x: 50,
-    y: 50,
-    width: window.innerWidth - 100, // 动态计算宽度
-    height: 200,
-};
+
 
 const GameCanvas = ({ tiles, playerId }) => {
     const socket = useSocket();
@@ -68,49 +62,21 @@ const GameCanvas = ({ tiles, playerId }) => {
     }, [throttledMove]);
 
     const handleDragEnd = useCallback((tileId, finalPosition) => {
-        throttledMove.cancel(); // 确保最后一个节流调用被取消
-
-        // --- TODO 2: 实现“出牌”逻辑 ---
-        // 检查方块的中心点是否在公共区域内
-        const tileCenter = {
-            x: finalPosition.x + 30, // Tile width is 60, center is 30
-            y: finalPosition.y + 40, // Tile height is 80, center is 40
-        };
-
-        if (
-            tileCenter.x >= PUBLIC_ZONE.x &&
-            tileCenter.x <= PUBLIC_ZONE.x + PUBLIC_ZONE.width &&
-            tileCenter.y >= PUBLIC_ZONE.y &&
-            tileCenter.y <= PUBLIC_ZONE.y + PUBLIC_ZONE.height
-        ) {
-            // 如果在区域内，则触发“出牌”事件
-            console.log(`Tile ${tileId} played in public zone.`);
-            socket.emit('playTile', { tileId, position: finalPosition });
-        } else {
-            // 否则，只发送最终的移动位置
-            socket.emit('moveTile', { tileId, position: finalPosition });
-        }
+        throttledMove.cancel();
+        // 现在拖拽结束只同步最终位置
+        socket.emit('moveTile', { tileId, position: finalPosition });
     }, [socket, throttledMove]);
 
+    const handlePlayTile = useCallback((tileId, currentPosition) => {
+        console.log(`Tile ${tileId} played via double-click.`);
+        // 服务器将决定牌被打出后的最终位置，但我们可以发送当前位置作为参考
+        socket.emit('playTile', { tileId, position: currentPosition });
+    }, [socket]);
+
     return (
-        // 将 ref 附加到父容器 div
         <div ref={containerRef} className="absolute top-0 left-0 w-full h-full bg-gray-700">
-            {/* 使用 state 中的尺寸来设置 Stage 大小 */}
-            <Stage width={dimensions.width} height={dimensions.height} ref={stageRef}>
-                <Layer>
-                    {/* 绘制背景、玩家区域边界等 */}
-                    <Rect
-                        x={PUBLIC_ZONE.x}
-                        y={PUBLIC_ZONE.y}
-                        width={PUBLIC_ZONE.width}
-                        height={PUBLIC_ZONE.height}
-                        fill="#2d3748" // 一个深灰色背景
-                        stroke="#4a5568"
-                        strokeWidth={2}
-                        dash={[10, 5]}
-                        cornerRadius={10}
-                    />
-                </Layer>
+            <Stage width={dimensions.width} height={dimensions.height}>
+                {/* ... (Background Layer with optional PUBLIC_ZONE rect) */}
                 <Layer>
                     {konvaTiles.map(tile => (
                         <Tile
@@ -119,12 +85,14 @@ const GameCanvas = ({ tiles, playerId }) => {
                             isOwner={tile.owner === playerId}
                             onDragMove={handleDragMove}
                             onDragEnd={handleDragEnd}
+                            onPlayTile={handlePlayTile} // NEW: 传递新的 prop
                         />
                     ))}
                 </Layer>
             </Stage>
         </div>
     );
+
 };
 
 export default GameCanvas;

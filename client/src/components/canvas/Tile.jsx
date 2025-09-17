@@ -4,7 +4,7 @@ import { Group, Rect, Text } from "react-konva";
 const TILE_WIDTH = 60;
 const TILE_HEIGHT = 80;
 
-const Tile = ({ tileData, isOwner, onDragMove, onDragEnd }) => {
+const Tile = ({ tileData, isOwner, onDragMove, onDragEnd, onPlayTile }) => {
     const { id, char, pos } = tileData;
 
     const handleDragMove = (e) => {
@@ -13,6 +13,13 @@ const Tile = ({ tileData, isOwner, onDragMove, onDragEnd }) => {
 
     const handleDragEnd = (e) => {
         onDragEnd(id, { x: e.target.x(), y: e.target.y() });
+    };
+
+    const handleDoubleClick = () => {
+        // 只有牌的拥有者才能出牌
+        if (isOwner) {
+            onPlayTile(id, pos);
+        }
     };
 
     return (

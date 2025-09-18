@@ -3,7 +3,7 @@ const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { GameManager } = require('./GameManager');
+const { GameManager } = require('./game/gameManager.js');
 
 const app = express();
 app.use(cors());
@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         // 确保这里是你的前端访问地址
-        origin: "http://localhost:3000", // React 默认是 3000
+        origin: "http://localhost:5173", // React 默认是 3000
         methods: ["GET", "POST"]
     }
 });

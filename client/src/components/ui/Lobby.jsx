@@ -13,7 +13,7 @@ function Lobby({ onJoin }) {
 
     return (
         <div className="p-8 bg-gray-900 rounded-lg shadow-xl text-center">
-            <h1 className="text-4xl font-bold mb-6 text-yellow-400">字牌風雲</h1>
+            <h1 className="text-4xl font-bold mb-6 text-yellow-400">Word Mahjong</h1>
             <form onSubmit={handleJoin} className="space-y-4">
                 <input
                     type="text"

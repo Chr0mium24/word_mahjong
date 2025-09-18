@@ -67,12 +67,12 @@ class GameManager {
     handleDisconnect(socket) {
         // 遍历所有游戏实例，检查该玩家是否在其中
         for (const [roomId, game] of this.games.entries()) {
-            if (game.players[socket.id]) {
+            if (game.state.players[socket.id]) {
                 game.removePlayer(socket.id);
                 console.log(`玩家 ${socket.id} 已从房间 ${roomId} 移除`);
                 
-                // 如果房间变空，则销毁该游戏实例
-                if (Object.keys(game.players).length === 0) {
+                // 修正: 检查 game.state.players 的长度
+                if (Object.keys(game.state.players).length === 0) {
                     this.games.delete(roomId);
                     console.log(`房间 ${roomId} 已空，已被关闭`);
                 }

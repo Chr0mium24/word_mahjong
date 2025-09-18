@@ -1,58 +1,73 @@
-// src/components/ui/GameUI.jsx
-
-import React, { useEffect, useRef } from 'react'; // 引入 useEffect 和 useRef
-import { useGameState } from '../../context/GameStateContext';
-import { useSocket } from '../../context/SocketContext'; // 引入 useSocket
-import GameCanvas from '../canvas/GameCanvas';
+import React, { useContext, useState, useEffect } from 'react';
+import { GameStateContext } from '../../context/GameStateContext';
+import { SocketContext } from '../../context/SocketContext';
 import PlayerInfo from './PlayerInfo';
 import ActionButtons from './ActionButtons';
 import VoteModal from './VoteModal';
+import GameCanvas from '../canvas/GameCanvas';
+import useSocketListener from '../../hooks/useSocketListener';
 
-const GameUI = ({ playerId }) => {
-    const gameState = useGameState();
-    const socket = useSocket(); // 获取 socket 实例
 
-    // NEW: 使用 useRef 来追踪上一个回合的玩家
-    const prevTurnRef = useRef(null);
+function GameUI({ username, roomId }) {
+    const { gameState } = useContext(GameStateContext);
+    const socket = useContext(SocketContext);
+    const [voteData, setVoteData] = useState(null);
+    const [gameMessage, setGameMessage] = useState('');
 
-    // NEW: 实现自动摸牌的 Effect
-    useEffect(() => {
-        if (!gameState || !playerId) return;
-
-        // 检查是否轮到当前玩家，并且上一个回合不是当前玩家 (防止在同回合的其它状态更新时重复摸牌)
-        if (gameState.turn === playerId && prevTurnRef.current !== playerId) {
-            console.log("It's my turn, automatically drawing a tile.");
-            socket.emit('drawTile');
+    // 监听投票开始
+    useSocketListener('startVote', (data) => {
+        // 只有非发起者才需要投票
+        if (gameState?.players[socket.id]?.username !== data.claimantName) {
+            setVoteData(data);
         }
+    });
 
-        // 更新上一个回合的玩家
-        prevTurnRef.current = gameState.turn;
-
-    }, [gameState, playerId, socket]); // 依赖项包含 gameState, playerId 和 socket
+    // 监听投票结果
+    useSocketListener('voteResult', ({ result, type, claimantName }) => {
+        setVoteData(null); // 关闭投票窗口
+        const actionText = type === 'win' ? '胡牌' : '吃牌';
+        const resultText = result === 'success' ? '成功' : '失败';
+        setGameMessage(`玩家 ${claimantName} ${actionText} ${resultText}!`);
+        setTimeout(() => setGameMessage(''), 3000); // 3秒后清除消息
+    });
 
     if (!gameState) {
-        return <div className="flex items-center justify-center h-full">Loading Game...</div>;
+        return <div className="text-xl">正在加载游戏状态...</div>;
     }
 
+    const isMyTurn = gameState.turn === socket.id;
+
     return (
-        <div className="relative w-full h-full flex flex-col">
-            <header className="flex-shrink-0 bg-gray-900 p-2 shadow-md flex justify-between items-center">
-                <h1 className="text-xl font-bold text-teal-400">Verse Weavers - Room: {gameState.roomId}</h1>
-                <PlayerInfo players={gameState.players} currentPlayerId={playerId} turn={gameState.turn} />
-            </header>
+        <div className="w-full h-screen p-4 flex flex-col lg:flex-row gap-4">
+            {voteData && <VoteModal voteData={voteData} onClose={() => setVoteData(null)} />}
 
-            <main className="flex-grow relative">
-                <GameCanvas tiles={gameState.tiles} playerId={playerId} />
-            </main>
+            {/* 游戏主区域 */}
+            <div className="flex-grow flex flex-col relative">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 px-4 py-2 rounded-lg z-20">
+                    {isMyTurn ? (
+                        <p className="text-yellow-400 text-lg animate-pulse">轮到你了！</p>
+                    ) : (
+                        <p className="text-gray-300">等待 {gameState.players[gameState.turn]?.username || ''} 操作...</p>
+                    )}
+                </div>
 
-            <footer className="flex-shrink-0 bg-gray-900 p-3 flex justify-center">
-                {/* MODIFIED: 现在的按钮只在轮到自己时才和 gameState 有关 */}
-                <ActionButtons isMyTurn={gameState.turn === playerId} />
-            </footer>
+                {gameMessage && (
+                    <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-blue-800 bg-opacity-80 px-6 py-3 rounded-xl z-20 text-xl font-bold">
+                        {gameMessage}
+                    </div>
+                )}
 
-            {gameState.gameState === 'voting' && <VoteModal />}
+                <GameCanvas />
+            </div>
+
+            {/* 侧边栏 */}
+            <div className="w-full lg:w-80 bg-gray-900 p-4 rounded-lg shadow-lg flex flex-col gap-4">
+                <h2 className="text-2xl font-bold text-yellow-400 border-b-2 border-yellow-500 pb-2">房间: {roomId}</h2>
+                <PlayerInfo players={gameState.players} myId={socket.id} />
+                <ActionButtons />
+            </div>
         </div>
     );
-};
+}
 
 export default GameUI;

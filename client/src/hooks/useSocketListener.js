@@ -1,16 +1,17 @@
-import { useEffect } from "react";
-import { useSocket } from "../context/SocketContext";
+import { useEffect, useContext } from 'react';
+import { SocketContext } from '../context/SocketContext';
 
 const useSocketListener = (eventName, callback) => {
-  const socket = useSocket();
+  const socket = useContext(SocketContext);
 
   useEffect(() => {
-    socket.on(eventName, callback);
+    if (socket) {
+      socket.on(eventName, callback);
 
-    // 组件卸载时清理监听器
-    return () => {
-      socket.off(eventName, callback);
-    };
+      return () => {
+        socket.off(eventName, callback);
+      };
+    }
   }, [socket, eventName, callback]);
 };
 

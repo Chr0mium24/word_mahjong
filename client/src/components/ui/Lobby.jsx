@@ -1,50 +1,44 @@
 import React, { useState } from 'react';
-import { useSocket } from '../../context/SocketContext';
 
-const Lobby = () => {
+function Lobby({ onJoin }) {
+    const [nickname, setNickname] = useState('');
     const [roomId, setRoomId] = useState('');
-    const [playerName, setPlayerName] = useState('');
-    const socket = useSocket();
 
-    const handleJoinRoom = (e) => {
+    const handleJoin = (e) => {
         e.preventDefault();
-        if (roomId && playerName) {
-            socket.emit('joinRoom', { roomId, playerName });
+        if (nickname.trim() && roomId.trim()) {
+            onJoin(nickname, roomId);
         }
     };
 
     return (
-        <div className="flex items-center justify-center h-full">
-            <form onSubmit={handleJoinRoom} className="p-8 bg-gray-700 rounded-lg shadow-xl w-full max-w-sm">
-                <h1 className="text-3xl font-bold mb-6 text-center text-teal-400">Verse Weavers</h1>
-                <div className="mb-4">
-                    <label htmlFor="playerName" className="block mb-2 text-sm font-medium text-gray-300">Player Name</label>
-                    <input
-                        id="playerName"
-                        type="text"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        required
-                    />
-                </div>
-                <div className="mb-6">
-                    <label htmlFor="roomId" className="block mb-2 text-sm font-medium text-gray-300">Room ID</label>
-                    <input
-                        id="roomId"
-                        type="text"
-                        value={roomId}
-                        onChange={(e) => setRoomId(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        required
-                    />
-                </div>
-                <button type="submit" className="w-full py-2 px-4 bg-teal-600 hover:bg-teal-700 rounded-md font-bold transition-colors duration-200">
-                    Join or Create Room
+        <div className="p-8 bg-gray-900 rounded-lg shadow-xl text-center">
+            <h1 className="text-4xl font-bold mb-6 text-yellow-400">字牌風雲</h1>
+            <form onSubmit={handleJoin} className="space-y-4">
+                <input
+                    type="text"
+                    placeholder="输入您的昵称"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    className="w-full px-4 py-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+                <input
+                    type="text"
+                    placeholder="输入房间号"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    className="w-full px-4 py-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+                <button
+                    type="submit"
+                    disabled={!nickname.trim() || !roomId.trim()}
+                    className="w-full px-4 py-3 rounded bg-yellow-600 hover:bg-yellow-500 text-white font-bold transition duration-200 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                >
+                    进入房间
                 </button>
             </form>
         </div>
     );
-};
+}
 
 export default Lobby;

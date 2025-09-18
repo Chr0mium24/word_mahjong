@@ -10,7 +10,7 @@ import Tile from './Tile';
 const GameCanvas = ({ tiles, playerId }) => {
     const socket = useSocket();
     const [konvaTiles, setKonvaTiles] = useState(tiles);
-    const stageRef = useRef(null);
+    const [draggedTileId, setDraggedTileId] = useState(null);
 
     // --- TODO 1: 动态获取父容器尺寸 ---
     // 1. 创建一个 ref 来引用父容器 div
@@ -40,8 +40,12 @@ const GameCanvas = ({ tiles, playerId }) => {
 
     // 当外部 tiles 属性更新时，同步到内部 state
     useEffect(() => {
-        setKonvaTiles(tiles);
-    }, [tiles]);
+        // 只有当没有方块被拖拽时，才接受来自服务器的完整列表更新
+        // 这可以防止拖拽过程中，方块位置被服务器状态覆盖
+        if (!draggedTileId) {
+            setKonvaTiles(tiles);
+        }
+    }, [tiles, draggedTileId]);
 
     const throttledMove = useRef(
         throttle(({ tileId, position }) => {
@@ -50,6 +54,9 @@ const GameCanvas = ({ tiles, playerId }) => {
     ).current;
 
     useSocketListener('tileMoved', ({ tileId, position }) => {
+        if (tileId === draggedTileId) {
+            return;
+        }
         setKonvaTiles(currentTiles =>
             currentTiles.map(tile =>
                 tile.id === tileId ? { ...tile, pos: position } : tile
@@ -57,14 +64,27 @@ const GameCanvas = ({ tiles, playerId }) => {
         );
     });
 
+    const handleDragStart = useCallback((tileId) => {
+        setDraggedTileId(tileId);
+    }, []);
+
     const handleDragMove = useCallback((tileId, newPosition) => {
+        // 1. 立即更新本地 React State，保证视觉流畅
+        setKonvaTiles(currentTiles =>
+            currentTiles.map(tile =>
+                tile.id === tileId ? { ...tile, pos: newPosition } : tile
+            )
+        );
+        // 2. 节流发送事件到服务器，通知其他玩家
         throttledMove({ tileId, position: newPosition });
     }, [throttledMove]);
 
     const handleDragEnd = useCallback((tileId, finalPosition) => {
         throttledMove.cancel();
-        // 现在拖拽结束只同步最终位置
+        // 1. 发送最终位置到服务器
         socket.emit('moveTile', { tileId, position: finalPosition });
+        // 2. 清除被拖拽的方块 ID
+        setDraggedTileId(null);
     }, [socket, throttledMove]);
 
     const handlePlayTile = useCallback((tileId, currentPosition) => {
@@ -75,21 +95,22 @@ const GameCanvas = ({ tiles, playerId }) => {
 
     return (
         <div ref={containerRef} className="absolute top-0 left-0 w-full h-full bg-gray-700">
-            <Stage width={dimensions.width} height={dimensions.height}>
-                {/* ... (Background Layer with optional PUBLIC_ZONE rect) */}
-                <Layer>
-                    {konvaTiles.map(tile => (
-                        <Tile
-                            key={tile.id}
-                            tileData={tile}
-                            isOwner={tile.owner === playerId}
-                            onDragMove={handleDragMove}
-                            onDragEnd={handleDragEnd}
-                            onPlayTile={handlePlayTile} // NEW: 传递新的 prop
-                        />
-                    ))}
-                </Layer>
-            </Stage>
+            {(dimensions.width > 0 && dimensions.height > 0) && (
+                <Stage width={dimensions.width} height={dimensions.height}>
+                    <Layer>
+                        {konvaTiles.map(tile => (
+                            <Tile
+                                key={tile.id}
+                                tileData={tile}
+                                isOwner={tile.owner === playerId}
+                                onDragMove={handleDragMove}
+                                onDragEnd={handleDragEnd}
+                                onPlayTile={handlePlayTile}
+                                onDragStart={handleDragStart}
+                            />
+                        ))}
+                    </Layer>
+                </Stage>)}
         </div>
     );
 

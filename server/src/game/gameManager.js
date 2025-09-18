@@ -42,6 +42,51 @@ function broadcastGameState(roomId, io) {
     }
 }
 
+
+/**
+ * Fisher-Yates (aka Knuth) Shuffle.
+ * 高效地将一个数组原地打乱。
+ * @param {Array} array The array to shuffle.
+ */
+function shuffle(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
+    }
+    return array;
+}
+
+/**
+ * 开始游戏，洗牌并发牌
+ * @param {object} gameState - The game state to modify.
+ */
+function startGame(gameState) {
+    const playerIds = Object.keys(gameState.players);
+    if (playerIds.length < 1) return; // 至少需要1个玩家才能开始 (可调整为2)
+
+    const wallTiles = gameState.tiles.filter(t => t.owner === null);
+    shuffle(wallTiles);
+
+    playerIds.forEach((playerId, playerIndex) => {
+        // 每个玩家发13张牌
+        for (let i = 0; i < 13; i++) {
+            const tileToDeal = wallTiles.pop();
+            if (tileToDeal) {
+                tileToDeal.owner = playerId;
+                // 分配一个在玩家私有区域的初始位置
+                tileToDeal.pos = { x: 100 + i * 70, y: 600 + playerIndex * 150 };
+            }
+        }
+    });
+
+    gameState.gameState = 'playing';
+    gameState.turn = playerIds[0]; // 第一个加入的玩家先开始
+    console.log(`Game started in room ${gameState.roomId}`);
+}
+
 // 导出所有游戏逻辑函数
 module.exports = {
     gameRooms, // 导出以便在server.js中断开连接时使用
@@ -49,26 +94,70 @@ module.exports = {
     handleJoinRoom(socket, io, { roomId, playerName }) {
         let gameState = gameRooms.get(roomId);
 
-        // 如果房间不存在，则创建一个新房间
         if (!gameState) {
             gameState = createNewGameState(roomId);
             gameRooms.set(roomId, gameState);
         }
 
-        // 添加新玩家
         socket.join(roomId);
         gameState.players[socket.id] = { name: playerName };
-
-        // 如果这是第一个玩家，设定他为当前回合
-        if (!gameState.turn) {
-            gameState.turn = socket.id;
-            gameState.gameState = 'playing'; // 可以设置为等待更多玩家的状态
+        
+        // 逻辑修改：例如，当第二个玩家加入时自动开始游戏
+        if (Object.keys(gameState.players).length === 2 && gameState.gameState === 'waiting') {
+            startGame(gameState);
         }
-
+        
         console.log(`Player ${playerName} (${socket.id}) joined room ${roomId}`);
         broadcastGameState(roomId, io);
     },
 
+    // 新增：处理出牌事件
+    handlePlayTile(socket, io, { tileId }) {
+        const roomId = Array.from(socket.rooms).pop();
+        const gameState = gameRooms.get(roomId);
+        
+        // --- 安全性校验 ---
+        if (!gameState || 
+            gameState.turn !== socket.id || 
+            gameState.gameState !== 'playing') {
+            console.warn(`Invalid playTile attempt by ${socket.id}`);
+            return;
+        }
+
+        const tile = gameState.tiles.find(t => t.id === tileId);
+        if (!tile || tile.owner !== socket.id || tile.isPublic) {
+            console.warn(`Player ${socket.id} tried to play an invalid tile.`);
+            return;
+        }
+
+        // --- 状态更新 ---
+        tile.isPublic = true;
+
+        // 服务器计算并分配一个权威的公共位置
+        const TILE_SPACING = 75;
+        const TILES_PER_ROW = 12;
+        const PUBLIC_AREA_START_X = 100;
+        const PUBLIC_AREA_START_Y = 150;
+
+        const row = Math.floor(gameState.publicTileCounter / TILES_PER_ROW);
+        const col = gameState.publicTileCounter % TILES_PER_ROW;
+
+        tile.pos = {
+            x: PUBLIC_AREA_START_X + col * TILE_SPACING,
+            y: PUBLIC_AREA_START_Y + row * 100
+        };
+
+        gameState.publicTileCounter++; // 计数器递增
+
+        // 轮换回合
+        const playerIds = Object.keys(gameState.players);
+        const currentIndex = playerIds.indexOf(socket.id);
+        const nextIndex = (currentIndex + 1) % playerIds.length;
+        gameState.turn = playerIds[nextIndex];
+
+        // 广播更新后的状态
+        broadcastGameState(roomId, io);
+    },
     handleMoveTile(socket, { tileId, position }) {
         const roomId = Array.from(socket.rooms).pop(); // 获取玩家所在的房间
         const gameState = gameRooms.get(roomId);

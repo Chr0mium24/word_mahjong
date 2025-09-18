@@ -37,6 +37,8 @@ io.on('connection', (socket) => {
         gameManager.handlePlayTile(socket, io, data); // 处理客户端出牌的动作。
     });
 
+    
+
     socket.on('claimVictory', () => {
         gameManager.handleClaimVictory(socket, io); // 处理客户端宣告胜利的请求。
     });

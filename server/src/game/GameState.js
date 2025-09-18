@@ -18,13 +18,15 @@ function createInitialTiles() {
 function createNewGameState(roomId) {
     return {
         roomId: roomId,
-        players: {}, // key: socket.id, value: { name: 'playerName' }
+        players: {},
         tiles: createInitialTiles(),
-        turn: null, // 初始没有回合，等待玩家加入
-        gameState: "waiting", // waiting, playing, voting, ended
-        claimantId: null, // 宣布胜利的玩家ID
-        votes: {}, // 存储投票结果
+        turn: null,
+        gameState: 'waiting', // 状态从 'waiting' 开始
+        claimantId: null,
+        votes: {},
+        publicTileCounter: 0, // 新增：用于计算打出牌的位置
     };
 }
+
 
 module.exports = { createNewGameState };

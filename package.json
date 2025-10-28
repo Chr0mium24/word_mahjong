@@ -1,0 +1,12 @@
+{
+  "name": "word-mahjong",
+  "private": true,
+  "packageManager": "pnpm@9.1.0",
+  "scripts": {
+    "dev": "pnpm --parallel --stream -r dev",
+    "build": "pnpm --stream -r build"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

@@ -31,3 +31,10 @@ This document tracks the completed tasks for the "Word Mahjong" project.
   - The client can send a `playTile` event to the server.
   - The server handles the `playTile` event, updates the game state, and broadcasts it to all clients.
 - **UI Updates**: The client UI dynamically updates to reflect the current game state, showing player hands, the discard pile, and whose turn it is.
+
+## Step 5: Client-Side Refactoring & Type Safety
+
+- **Component-Based Architecture**: The main `App.tsx` has been refactored. The UI is now split into distinct `Lobby.tsx` and `GameUI.tsx` components, improving code organization and maintainability.
+- **Improved State Management**: The root `App.tsx` component now properly manages the socket connection and game state, passing data and callbacks down to child components as props.
+- **Full Type Safety**: All client-server communication (socket event emissions and listeners) now uses the strictly-typed payloads defined in the `@word-mahjong/common` package. This eliminates a class of potential runtime errors and improves developer experience.
+- **UI Logic Cleanup**: Removed the manual "Start Game" button, aligning the client with the server's automatic game start logic. The UI now correctly reflects the "waiting for players" and "playing" states.

@@ -9,6 +9,9 @@
     "composite": true,
     "declaration": true,
     "sourceMap": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@word-mahjong/common/*": ["./packages/common/src/*"]
+    }
   }
 }

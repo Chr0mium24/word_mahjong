@@ -35,6 +35,31 @@ export function registerGameHandlers(io: Server, socket: Socket) {
     }
   };
 
+  const readyForNextGame = () => {
+    const roomId = Array.from(socket.rooms).find(r => r !== socket.id);
+    if (!roomId) return;
+
+    const game = games[roomId as string];
+    if (game) {
+      const player = game.getPlayer(socket.id);
+      if (player) {
+        player.isReady = true;
+      }
+
+      const allPlayersReady = Object.values(game.players).every(p => p.isReady);
+
+      if (allPlayersReady) {
+        game.resetForNextGame();
+        // Reset ready status for all players
+        for (const p of Object.values(game.players)) {
+          p.isReady = false;
+        }
+        game.startGame();
+      }
+    }
+  };
+
   socket.on('startGame', startGame);
   socket.on('playTile', playTile);
+  socket.on('readyForNextGame', readyForNextGame);
 }

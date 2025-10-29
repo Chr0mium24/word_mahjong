@@ -7,6 +7,7 @@ export interface CreateRoomPayload { username: string; customDeck?: string; }
 export interface PlayTilePayload { tileId: string; }
 export interface ClaimActionPayload { type: 'chow' | 'win'; tiles: string[]; targetTileId?: string; }
 export interface SubmitVotePayload { decision: 'approve' | 'deny'; }
+export interface ReadyForNextGamePayload {}
 
 // Server -> Client Payloads
 export type GameStateUpdatePayload = GameState;

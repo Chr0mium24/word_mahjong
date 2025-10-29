@@ -4,6 +4,7 @@ import { GameState } from '@word-mahjong/common/types';
 import { CreateRoomPayload, JoinRoomPayload, PlayTilePayload } from '@word-mahjong/common/events';
 import Lobby from './components/Lobby';
 import GameUI from './components/GameUI';
+import ScoreboardModal from './components/ScoreboardModal';
 
 // It's good practice to define the server URL in a constant
 const SERVER_URL = 'http://localhost:3000';
@@ -36,9 +37,9 @@ const App: React.FC = () => {
         };
     }, []);
 
-    const handleCreateRoom = () => {
+    const handleCreateRoom = (customDeck?: string) => {
         if (socket && username.trim()) {
-            const payload: CreateRoomPayload = { username };
+            const payload: CreateRoomPayload = { username, customDeck };
             socket.emit('createRoom', payload);
         }
     };
@@ -57,27 +58,41 @@ const App: React.FC = () => {
         }
     };
 
+    const handleReadyForNextGame = () => {
+        if (socket) {
+            socket.emit('readyForNextGame');
+        }
+    };
+
     // Determine the current player from gameState
     const currentPlayer = socket && socket.id && gameState ? gameState.players[socket.id] : null;
 
-    return (
-        <div>
-            {!gameState || !currentPlayer ? (
+    const renderContent = () => {
+        if (!gameState || !currentPlayer) {
+            return (
                 <Lobby
                     username={username}
                     setUsername={setUsername}
                     onCreateRoom={handleCreateRoom}
                     onJoinRoom={handleJoinRoom}
                 />
-            ) : (
-                <GameUI
-                    gameState={gameState}
-                    currentPlayer={currentPlayer}
-                    onPlayTile={handlePlayTile}
-                />
-            )}
-        </div>
-    );
+            );
+        }
+
+        if (gameState.gameState === 'ended') {
+            return <ScoreboardModal gameState={gameState} onReadyForNextGame={handleReadyForNextGame} />;
+        }
+
+        return (
+            <GameUI
+                gameState={gameState}
+                currentPlayer={currentPlayer}
+                onPlayTile={handlePlayTile}
+            />
+        );
+    };
+
+    return <div>{renderContent()}</div>;
 };
 
 export default App;

@@ -38,3 +38,10 @@ This document tracks the completed tasks for the "Word Mahjong" project.
 - **Improved State Management**: The root `App.tsx` component now properly manages the socket connection and game state, passing data and callbacks down to child components as props.
 - **Full Type Safety**: All client-server communication (socket event emissions and listeners) now uses the strictly-typed payloads defined in the `@word-mahjong/common` package. This eliminates a class of potential runtime errors and improves developer experience.
 - **UI Logic Cleanup**: Removed the manual "Start Game" button, aligning the client with the server's automatic game start logic. The UI now correctly reflects the "waiting for players" and "playing" states.
+
+## Step 6: Advanced Features & Polishing
+
+- **Custom Deck Creation**: The client now features a textarea in the lobby for players to input a custom set of characters for the game deck. The server correctly generates the deck based on this input, ensuring the deck size is exactly 144 characters by either repeating or truncating the provided string.
+- **Disconnect/Reconnect Handling**: The server can now handle player disconnections. A disconnected player has a 3-minute window to reconnect. If they fail to do so, their status changes to "managed," and the server will automatically play for them to keep the game moving. Reconnecting players are seamlessly integrated back into the game with the current state.
+- **Scoring and Game End**: A basic scoring system has been implemented. The winner of a round receives 10 points. At the end of a game, a scoreboard is displayed, and players can signal their readiness for the next round.
+- **UI/UX Refinements**: The game UI now provides better user feedback. It displays whose turn it is, highlights the current player in the player list, and features a countdown timer to show the remaining time for the current turn. Buttons are disabled when it is not the player's turn.

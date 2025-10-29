@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 interface LobbyProps {
   username: string;
   setUsername: (name: string) => void;
-  onCreateRoom: () => void;
+  onCreateRoom: (customDeck?: string) => void;
   onJoinRoom: (roomId: string) => void;
 }
 
 const Lobby: React.FC<LobbyProps> = ({ username, setUsername, onCreateRoom, onJoinRoom }) => {
   const [roomId, setRoomId] = useState('');
+  const [customDeck, setCustomDeck] = useState('');
 
   return (
     <div>
@@ -19,7 +20,16 @@ const Lobby: React.FC<LobbyProps> = ({ username, setUsername, onCreateRoom, onJo
         value={username}
         onChange={(e) => setUsername(e.target.value)}
       />
-      <button onClick={onCreateRoom} disabled={!username.trim()}>
+      <div>
+        <textarea
+          placeholder="输入自定义牌库（可选，留空则使用默认牌库）"
+          value={customDeck}
+          onChange={(e) => setCustomDeck(e.target.value)}
+          rows={4}
+          cols={50}
+        />
+      </div>
+      <button onClick={() => onCreateRoom(customDeck)} disabled={!username.trim()}>
         创建房间
       </button>
       <hr />
